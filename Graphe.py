@@ -1,6 +1,9 @@
 import networkx as nx
 import csv
 from math import inf
+import matplotlib.pyplot as plt
+import numpy as np
+import spicy as sp
 
 def CreationGraphe():
     G = nx.Graph()
@@ -144,8 +147,23 @@ def trouver_id(nom_station):
                 return id_station
     return None
 
+def arbre_couvrant_prim_poids_min(graph):
+    """
+    Utilise l'algo de Prim et affiche graphiquement l'arbre couvrant de poids minimal
+    """
+    arbre = nx.minimum_spanning_tree(graph)
+    pos = nx.kamada_kawai_layout(arbre)
+    plt.figure(figsize=(12, 8))
+    nx.draw(arbre, pos, with_labels=True, font_weight='bold', node_size=50, node_color='skyblue', font_size=8)
+    plt.title("Arbre couvrant de poids minimal")
+    plt.show()
+    return arbre
 
 G = CreationGraphe()
 depart = trouver_id('Strasbourg Saint-Denis')
 arrivee = trouver_id('Villejuif, P. Vaillant Couturier')
 print(plus_court_chemin(G, depart, arrivee))
+print("\n")
+Connexite(G)
+arbre = arbre_couvrant_prim_poids_min(G)
+print(f"Nombre de stations dans l'arbre couvrant minimal: {arbre.number_of_nodes()}")
