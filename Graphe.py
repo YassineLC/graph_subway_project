@@ -154,7 +154,29 @@ def arbre_couvrant_prim_poids_min(graph):
     """
     Utilise l'algo de Prim et affiche graphiquement l'arbre couvrant de poids minimal
     """
-    arbre = nx.minimum_spanning_tree(graph)
+    nodes = list(graph.nodes())
+    mst_set = set()
+    mst_edges = []
+    edge_weights = {node: inf for node in nodes}
+    edge_weights[nodes[0]] = 0
+    parent = {node: None for node in nodes}
+
+    while len(mst_set) < len(nodes):
+        current_node = min((node for node in nodes if node not in mst_set), key=lambda node: edge_weights[node])
+        mst_set.add(current_node)
+
+        for neighbor in graph.neighbors(current_node):
+            weight = graph[current_node][neighbor]['temps']
+            if neighbor not in mst_set and weight < edge_weights[neighbor]:
+                edge_weights[neighbor] = weight
+                parent[neighbor] = current_node
+
+    for node in nodes:
+        if parent[node] is not None:
+            mst_edges.append((parent[node], node))
+
+    arbre = nx.Graph()
+    arbre.add_edges_from(mst_edges)
     pos = nx.kamada_kawai_layout(arbre)
     plt.figure(figsize=(12, 8))
     nx.draw(arbre, pos, with_labels=True, font_weight='bold', node_size=50, node_color='skyblue', font_size=8)
@@ -265,11 +287,11 @@ def interface_metro_parisien():
 # Exécution de l'interface
 interface_metro_parisien()
 
-# G = CreationGraphe()
+G = CreationGraphe()
 # depart = trouver_id('Strasbourg Saint-Denis')
 # arrivee = trouver_id('Villejuif, P. Vaillant Couturier')
 # print(plus_court_chemin(G, depart, arrivee))
 # print("\n")
-# Connexite(G)
-# arbre = arbre_couvrant_prim_poids_min(G)
+Connexite(G)
+arbre = arbre_couvrant_prim_poids_min(G)
 # print(f"Nombre de stations dans l'arbre couvrant minimal: {arbre.number_of_nodes()}")
