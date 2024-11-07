@@ -4,6 +4,8 @@ from math import inf
 import matplotlib.pyplot as plt
 import numpy as np
 import spicy as sp
+import matplotlib.image as mpimg
+import unicodedata
 
 def CreationGraphe():
     G = nx.Graph()
@@ -36,7 +38,7 @@ def parcours_profondeur(graph, start, SommetVisite=None):
         if Voisin not in SommetVisite:
             parcours_profondeur(graph, Voisin, SommetVisite)
     return SommetVisite
- 
+
 def Connexite(G):
     """
     Utilise un parcours en profondeur pour déterminer si le graphe est connexe
@@ -73,7 +75,8 @@ def plus_court_chemin(graph, start, end):
             if distances[v] + data['temps'] < distances[u]:
                 distances[u] = distances[v] + data['temps']
                 predecesseurs[u] = v
-                
+    print(distances)  
+    """On vérifie si end est un numéro de station ou un nom de station"""
     if distances[end] == inf:
         return "Pas de chemin trouvé"
         
@@ -125,7 +128,7 @@ def formater_temps(secondes):
             return f"{minutes} minute{'s' if minutes > 1 else ''} et {secs} seconde{'s' if secs > 1 else ''} ({secondes} secondes)"
     else:
         return f"{secs} seconde{'s' if secs > 1 else ''}"
-    
+
 def trouver_id(nom_station):
     """
     Permet de trouver l'identifiant d'une station à partir de son nom
@@ -159,11 +162,114 @@ def arbre_couvrant_prim_poids_min(graph):
     plt.show()
     return arbre
 
-G = CreationGraphe()
-depart = trouver_id('Strasbourg Saint-Denis')
-arrivee = trouver_id('Villejuif, P. Vaillant Couturier')
-print(plus_court_chemin(G, depart, arrivee))
-print("\n")
-Connexite(G)
-arbre = arbre_couvrant_prim_poids_min(G)
-print(f"Nombre de stations dans l'arbre couvrant minimal: {arbre.number_of_nodes()}")
+def correct_encoding(name):
+    corrections = {
+        "Ã‰": "É",
+        "Ã©": "é",
+        "Ã¨": "è",
+        "Ã§": "ç",
+        "A‰": "É", 
+        "A©": "é",  
+        "Ã¢": "â"
+    }
+    for wrong, correct in corrections.items():
+        name = name.replace(wrong, correct)
+    return name
+
+
+def interface_metro_parisien():
+    # Chargement de l'image de la carte du métro parisien
+    img = mpimg.imread('metrof_r.png')
+    G = CreationGraphe()
+    station_positions = {}
+    with open('pospoints.csv', 'r') as f:
+        for line in f:
+            x, y, station_id = line.strip().split(';')
+            station_positions[station_id] = (int(x), int(y))
+    
+    # Initialisation de la figure
+    fig, ax = plt.subplots()
+    ax.imshow(img)
+    
+    # Affichage des stations sur la carte
+    for station_id, (x, y) in station_positions.items():
+        ax.plot(x, y, 'o', color='red', markersize=5)
+    
+    # Variables pour stocker les stations de départ et d'arrivée
+    start_station = None
+    end_station = None
+    
+    def on_click(event):
+        nonlocal start_station, end_station
+        
+        # Obtenir la station la plus proche du clic
+        clicked_pos = (event.xdata, event.ydata)
+        nearest_station = min(station_positions.keys(),
+                              key=lambda s: np.linalg.norm(np.array(station_positions[s]) - np.array(clicked_pos)))
+            # Affichage pour débogage
+        print(f"Nom de station avant normalisation : '{nearest_station}'")
+        
+        # Normalisation
+        nearest_station = correct_encoding(nearest_station)
+        
+        # Affichage après normalisation
+        print(f"Nom de station après normalisation : '{nearest_station}'")
+
+        if start_station is None:
+            start_station = nearest_station
+            print(f"Station de départ sélectionnée : {start_station}")
+        elif end_station is None:
+            end_station = nearest_station
+            print(f"Station d'arrivée sélectionnée : {end_station}")
+            
+            # Calcul et affichage du plus court chemin
+            path_info = plus_court_chemin(G, trouver_id(start_station), trouver_id(end_station))
+            print(path_info)
+            
+            # Extraction des stations dans le chemin
+            chemin = path_info.split('\n')
+            chemin_ids = [start_station] + [line.split()[-1] for line in chemin if "prenez" in line] + [end_station]
+            
+            # Tracer le chemin sur la carte
+            for i in range(len(chemin_ids) - 1):
+                x1, y1 = station_positions[chemin_ids[i]]
+                x2, y2 = station_positions[chemin_ids[i+1]]
+                ax.plot([x1, x2], [y1, y2], color='blue', linewidth=2)
+            
+            plt.draw()
+            
+        # Réinitialisation pour une nouvelle sélection
+        else:
+            start_station, end_station = None, None
+    
+    def afficher_acpm(event):
+        # Calculer et afficher l'ACPM (Arbre couvrant de poids minimal)
+        arbre = arbre_couvrant_prim_poids_min(G)
+        
+        # Affichage de l'ACPM sur la carte
+        for u, v in arbre.edges():
+            x1, y1 = station_positions[u]
+            x2, y2 = station_positions[v]
+            ax.plot([x1, x2], [y1, y2], color='green', linewidth=1, linestyle='--')
+        
+        plt.draw()
+    
+    # Connexion des événements pour les clics
+    fig.canvas.mpl_connect('button_press_event', on_click)
+    
+    # Ajout d'un bouton pour afficher l'ACPM (utilise la touche 'a')
+    fig.canvas.mpl_connect('key_press_event', lambda event: afficher_acpm(event) if event.key == 'a' else None)
+    
+    plt.show()
+
+# Exécution de l'interface
+interface_metro_parisien()
+
+# G = CreationGraphe()
+# depart = trouver_id('Strasbourg Saint-Denis')
+# arrivee = trouver_id('Villejuif, P. Vaillant Couturier')
+# print(plus_court_chemin(G, depart, arrivee))
+# print("\n")
+# Connexite(G)
+# arbre = arbre_couvrant_prim_poids_min(G)
+# print(f"Nombre de stations dans l'arbre couvrant minimal: {arbre.number_of_nodes()}")
