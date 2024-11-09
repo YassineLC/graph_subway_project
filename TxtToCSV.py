@@ -27,7 +27,7 @@ def create_station_csv(data):
                 stations.append([station_id, station_name, ligne, terminus, zone])
     
     # Write to CSV
-    with open('stations.csv', 'w', newline='', encoding='utf-8') as f:
+    with open('utils/stations.csv', 'w', newline='', encoding='utf-8') as f:
         writer = csv.writer(f, delimiter=';')
         writer.writerow(['id', 'nom', 'ligne', 'terminus', 'zone'])
         writer.writerows(stations)
@@ -48,7 +48,7 @@ def create_edges_csv(data):
                 edges.append([station1, station2, temps])
     
     # Write to CSV
-    with open('connections.csv', 'w', newline='', encoding='utf-8') as f:
+    with open('utils/connections.csv', 'w', newline='', encoding='utf-8') as f:
         writer = csv.writer(f, delimiter=';')
         writer.writerow(['station1', 'station2', 'temps'])
         writer.writerows(edges)
