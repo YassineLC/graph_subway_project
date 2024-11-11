@@ -1,5 +1,6 @@
 import networkx as nx
 from math import inf
+import csv
 import matplotlib.pyplot as plt
 
 def parcours_profondeur(graph, start, SommetVisite=None):
@@ -60,13 +61,55 @@ def plus_court_chemin(graph, start, end):
     return chemin, distances[end]
 
 def arbre_couvrant_prim_poids_min(graph):
-    """
-    Utilise l'algo de Prim et affiche graphiquement l'arbre couvrant de poids minimal
-    """
-    arbre = nx.minimum_spanning_tree(graph)
-    pos = nx.kamada_kawai_layout(arbre)
-    plt.figure(figsize=(12, 8))
-    nx.draw(arbre, pos, with_labels=True, font_weight='bold', node_size=50, node_color='skyblue', font_size=8)
-    plt.title("Arbre couvrant de poids minimal")
-    plt.show()
+    # Initialisation
+    if not graph:
+        raise ValueError("Le graphe ne doit pas être vide.")
+        
+    arbre = {}
+    sommets = set(graph)
+    sommet = list(sommets)[0]
+    sommets.remove(sommet)
+    arbre[sommet] = None  # Racine de l'arbre couvrant
+    
+    while sommets:
+        aretes = []
+        for s in arbre:
+            aretes.extend(
+                [(s, v, data['temps']) for v, data in graph[s].items() if v in sommets]
+            )
+        
+        # Trouver l'arête de poids minimal connectant un sommet de l'arbre à un sommet hors de l'arbre
+        u, v, poids = min(aretes, key=lambda x: x[2])
+        arbre[v] = u
+        sommets.remove(v)
+        
     return arbre
+
+
+def CreationGraphe():
+    G = nx.Graph()
+    with open('utils/connections.csv', 'r', encoding='utf-8') as f:
+        reader = csv.reader(f, delimiter=';')
+        next(reader)
+        for row in reader:
+            Station1, Station2, temps = row
+            G.add_edge(Station1, Station2, temps=int(temps))
+    return G
+
+def afficher_graphique(arbre):
+    # On utilise kamala kawai pour un affichage plus lisible
+    pos = nx.kamada_kawai_layout(G)
+    plt.figure(figsize=(12, 12))
+    nx.draw(G, pos, with_labels=True, node_size=30, node_color='skyblue', edge_color='grey', alpha=0.5)
+    for v, u in arbre.items():
+        if u is not None:
+            #Affiche en rouge les arêtes de l'arbre couvrant en rouge, sinon en gris.
+            plt.plot([pos[u][0], pos[v][0]], [pos[u][1], pos[v][1]], 'r', alpha=0.5, linewidth=3)
+    plt.show()
+
+# On va tester les fonctions
+G = CreationGraphe()
+Connexite(G)
+F = arbre_couvrant_prim_poids_min(G)
+print(f"Arbre couvrant de poids minimal: {F} arêtes") 
+afficher_graphique(F)
