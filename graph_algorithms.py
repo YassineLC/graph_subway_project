@@ -36,15 +36,15 @@ def arbre_couvrant_prim(graph, stations):
     visite = set([sommetDepart])
     edges = [(cost, sommetDepart, to) for to, cost in graph[sommetDepart]]
     heapq.heapify(edges)
-    poids = 0  # Poids total de l'arbre couvrant minimum
-    mst_edges = []  # Pour stocker les liaisons dans l'arbre couvrant minimum
+    poids = 0 
+    mst_edges = []  
     
     while edges:
         cost, frm, to = heapq.heappop(edges)
         if to not in visite:
             visite.add(to)
             poids += cost
-            mst_edges.append((frm, to, cost))  # Ajouter la liaison trouvée
+            mst_edges.append((frm, to, cost))
             for to_next, cost in graph[to]:
                 if to_next not in visite:
                     heapq.heappush(edges, (cost, to, to_next))
@@ -73,7 +73,6 @@ def est_connexe(graph):
 
 # Algorithme de Bellman-Ford utilisant les noms des stations
 def belmann(graph, stations, debut_name, fin_name):
-    # Conversion des noms en IDs
     debut = next((id for id, name in stations.items() if name == debut_name), None)
     fin = next((id for id, name in stations.items() if name == fin_name), None)
     
@@ -92,7 +91,6 @@ def belmann(graph, stations, debut_name, fin_name):
                     distances[voisins] = distances[node] + weight
                     predecesseurs[voisins] = node
                     
-    # Construction du chemin sans redondances
     path = []
     current = fin
     while current is not None:
