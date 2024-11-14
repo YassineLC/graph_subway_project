@@ -108,8 +108,17 @@ def afficher_graphique(arbre):
     plt.show()
 
 # On va tester les fonctions
-G = CreationGraphe()
-Connexite(G)
-F = arbre_couvrant_prim_poids_min(G)
-print(f"Arbre couvrant de poids minimal: {F} arêtes") 
-afficher_graphique(F)
+# G = CreationGraphe()
+# Connexite(G)
+# F = arbre_couvrant_prim_poids_min(G)
+# print(f"Arbre couvrant de poids minimal: {F} arêtes") 
+# afficher_graphique(F)
+
+test_graph = {
+    'A': {'B': {'temps': 2}, 'C': {'temps': 3}},
+    'B': {'A': {'temps': 2}, 'C': {'temps': 1}, 'D': {'temps': 4}},
+    'C': {'A': {'temps': 3}, 'B': {'temps': 1}, 'D': {'temps': 5}},
+    'D': {'B': {'temps': 4}, 'C': {'temps': 5}}
+}
+arbre = arbre_couvrant_prim_poids_min(test_graph)
+print("Arbre couvrant généré :", arbre)

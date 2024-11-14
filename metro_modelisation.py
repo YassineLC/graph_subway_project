@@ -49,7 +49,7 @@ def trouver_id(nom_station, ligne=None):
     return None
 
 def correct_encoding(name):
-    corrections = {"Ã‰": "É", "Ã©": "é", "Ã¨": "è", "Ã§": "ç", "A‰": "É", "A©": "é", "Ã¢": "â"}
+    corrections = {"Ã‰": "É", "Ã©": "é", "Ã¨": "è", "Ã§": "ç", "A‰": "É", "A©": "é", "Ã¢": "â", "Ã®": "î", "Ã´": "ô", "Ãª": "ê" }
     for wrong, correct in corrections.items():
         name = name.replace(wrong, correct)
     return name
@@ -111,42 +111,84 @@ def get_station_choice(station_name, pos_x, pos_y):
     # Attendre que la fenêtre de choix soit fermée avant de retourner le choix
     return selected_id, selected_line
 
+def trouver_nom(id):
+    stations = lecture_stations()
+    return stations[id]['nom']
 
 def interface_metro_parisien():
+    # Chargement de l'image de la carte du métro
     img = mpimg.imread('utils/metrof_r.png')
     G = CreationGraphe()
+    
+    # Chargement des positions des stations avec leurs noms
     station_positions = {}
     with open('utils/pospoints.csv', 'r') as f:
         for line in f:
-            x, y, station_id = line.strip().split(';')
-            station_positions[station_id] = (int(x), int(y))
-    
+            x, y, station_name = line.strip().split(';')
+            station_name = correct_encoding(station_name)
+            station_positions[station_name] = (int(x), int(y))
+
+    # Chargement des noms et IDs des stations pour correspondance
+    stations_dict = lecture_stations()  # Contient {'id_station': {'nom': ..., 'ligne': ..., ...}}
+
+    # Création d'un dictionnaire associant les IDs aux noms des stations
+    id_to_name = {id_station: info['nom'] for id_station, info in stations_dict.items()}
+
+    # Configuration des sous-graphiques
     fig, (ax_map, ax_text) = plt.subplots(2, 1, gridspec_kw={'height_ratios': [4, 1]}, figsize=(15, 18))
     ax_map.imshow(img)
     ax_text.axis('off')
     text_output = ax_text.text(0.05, 0.95, "Cliquez sur une station de départ...", verticalalignment='top', wrap=True, fontsize=10)
-    
-    for station_id, (x, y) in station_positions.items():
+
+    # Tracé des points des stations
+    for station_name, (x, y) in station_positions.items():
         ax_map.plot(x, y, 'o', color='red', markersize=5)
 
+    # Initialisation des variables de sélection de stations
     start_station, start_line = None, None
     end_station, end_line = None, None
-    stations_dict = lecture_stations()
 
+    # Mise à jour du texte d'instructions
     def update_text_output(message):
         text_output.set_text(message)
         plt.draw()
 
+    # Fonction de gestion des clics
     def on_click(event):
         nonlocal start_station, start_line, end_station, end_line
 
         if event.inaxes != ax_map:
             return
 
+        # Trouver la station la plus proche
         clicked_pos = (event.xdata, event.ydata)
-        nearest_station = min(station_positions.keys(), key=lambda s: np.linalg.norm(np.array(station_positions[s]) - np.array(clicked_pos)))
-        nearest_station_name = correct_encoding(nearest_station)
+        nearest_station_name = min(station_positions.keys(), key=lambda s: np.linalg.norm(np.array(station_positions[s]) - np.array(clicked_pos)))
 
+        # Affichage de l'arbre couvrant si la station est 'Nice'
+        if nearest_station_name.strip().lower() == 'nice':
+            print("Affichage de l'arbre couvrant minimal pour 'Nice'")
+            arbre = arbre_couvrant_prim_poids_min(G)
+            print(arbre)
+            print(station_positions)
+            # Tracé des arêtes de l'arbre couvrant
+            for u, v in arbre.items():
+                # Convertir les identifiants en noms
+                station_u = id_to_name.get(u)
+                station_v = id_to_name.get(v)
+
+                # Assurer que les stations ont des positions associées
+                if station_u in station_positions and station_v in station_positions:
+                    x1, y1 = station_positions[station_u]
+                    x2, y2 = station_positions[station_v]
+                    ax_map.plot([x1, x2], [y1, y2], color='green', linewidth=2)
+                else:
+                    print(f"Station manquante dans station_positions : {station_u} ou {station_v}")
+
+            plt.draw()
+            plt.pause(0.1)
+            return
+
+        # Gestion des clics pour sélectionner les stations de départ et d'arrivée
         if start_station is None:
             station_id, ligne = get_station_choice(nearest_station_name, event.x, event.y)
             if station_id:
@@ -160,6 +202,7 @@ def interface_metro_parisien():
                 end_line = ligne
                 update_text_output(f"Calcul de l'itinéraire entre {start_station} et {end_station}...")
 
+                # Calcul et affichage du chemin
                 start_id = trouver_id(start_station, start_line)
                 end_id = trouver_id(end_station, end_line)
                 chemin, temps = plus_court_chemin(G, start_id, end_id)
@@ -182,19 +225,26 @@ def interface_metro_parisien():
 
                 update_text_output('\n'.join(resultat))
 
+                # Tracé du chemin sur la carte
                 for i in range(len(chemin) - 1):
-                    x1, y1 = station_positions[chemin[i]]
-                    x2, y2 = station_positions[chemin[i + 1]]
-                    ax_map.plot([x1, x2], [y1, y2], color='blue', linewidth=2)
+                    station_u = id_to_name.get(chemin[i])
+                    station_v = id_to_name.get(chemin[i + 1])
+                    if station_u in station_positions and station_v in station_positions:
+                        x1, y1 = station_positions[station_u]
+                        x2, y2 = station_positions[station_v]
+                        ax_map.plot([x1, x2], [y1, y2], color='blue', linewidth=2)
+                    else:
+                        print(f"Station manquante dans station_positions : {station_u} ou {station_v}")
 
                 plt.draw()
         else:
+            # Réinitialisation pour un nouvel itinéraire
             start_station = None
             start_line = None
             end_station = None
             end_line = None
             for line in ax_map.lines[:]:
-                if line.get_color() == 'blue':
+                if line.get_color() == 'blue' or line.get_color() == 'green':
                     line.remove()
             update_text_output("Cliquez sur une station de départ...")
             plt.draw()
@@ -202,5 +252,7 @@ def interface_metro_parisien():
     fig.canvas.mpl_connect('button_press_event', on_click)
     plt.show()
 
+
+# Appel de la fonction principale
 stations_dict = lecture_stations()
 interface_metro_parisien()
