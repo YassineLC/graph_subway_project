@@ -21,34 +21,32 @@ def CreationGraphe():
             G[Station2].append((Station1, temps))  # Car le graphe est non dirigé
     return G
 
-def plus_court_chemin(graphe, start, end):
-    import heapq
+def belmann(graphe, debut, fin):
+    # Initialisation
     distances = {node: float('inf') for node in graphe}
-    distances[start] = 0
-    priority_queue = [(0, start)]
-    predecessors = {start: None}
-
-    while priority_queue:
-        current_distance, current_node = heapq.heappop(priority_queue)
-
-        if current_node == end:
-            break
-
-        for neighbor, weight in graphe[current_node]:
-            distance = current_distance + weight
-
-            if distance < distances[neighbor]:
-                distances[neighbor] = distance
-                predecessors[neighbor] = current_node
-                heapq.heappush(priority_queue, (distance, neighbor))
-
+    predecesseurs = {node: None for node in graphe}
+    distances[debut] = 0
+    
+    # Relaxation des arêtes
+    for _ in range(len(graphe) - 1):
+        for node in graphe:
+            for voisin, poids in graphe[node]:
+                if distances[node] + poids < distances[voisin]:
+                    distances[voisin] = distances[node] + poids
+                    predecesseurs[voisin] = node
+    
+    # Reconstruction du chemin
+    if distances[fin] == float('inf'):
+        return None, float('inf')
+        
     chemin = []
-    current = end
+    current = fin
     while current is not None:
-        chemin.insert(0, current)
-        current = predecessors.get(current)
-
-    return chemin, distances[end]
+        if current not in chemin:  # Éviter les cycles
+            chemin.insert(0, current)
+        current = predecesseurs[current]
+    
+    return chemin, distances[fin]
 
 def lecture_stations():
     stations = {}
@@ -144,7 +142,13 @@ def interface_metro_parisien():
 
                 start_id = trouver_id(start_station, start_line)
                 end_id = trouver_id(end_station, end_line)
-                chemin, temps = plus_court_chemin(G, start_id, end_id)
+                
+                # Utilisation de Bellman-Ford au lieu de Dijkstra
+                chemin, temps = belmann(G, start_id, end_id)
+
+                if chemin is None:
+                    update_text_output("Aucun chemin trouvé entre ces stations.")
+                    return
 
                 resultat = ["Itinéraire :"]
                 ligne_courante = stations_dict[chemin[0]]['ligne']
@@ -164,6 +168,7 @@ def interface_metro_parisien():
 
                 update_text_output('\n'.join(resultat))
 
+                # Tracer le chemin sur la carte
                 for i in range(len(chemin) - 1):
                     x1, y1 = station_positions[chemin[i]]
                     x2, y2 = station_positions[chemin[i + 1]]
