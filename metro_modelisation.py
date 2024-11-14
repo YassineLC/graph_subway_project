@@ -167,7 +167,7 @@ def interface_metro_parisien():
         # Affichage de l'arbre couvrant si la station est 'Nice'
         if nearest_station_name.strip().lower() == 'nice':
             print("Affichage de l'arbre couvrant minimal pour 'Nice'")
-            arbre = arbre_couvrant_prim_poids_min(G)
+            arbre, _ = arbre_couvrant_prim_poids_min(G)
             print(arbre)
             print(station_positions)
             # Tracé des arêtes de l'arbre couvrant

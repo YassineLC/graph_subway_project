@@ -2,6 +2,7 @@ import networkx as nx
 from math import inf
 import csv
 import matplotlib.pyplot as plt
+import heapq
 
 def parcours_profondeur(graph, start, SommetVisite=None):
     if SommetVisite is None:
@@ -31,13 +32,17 @@ def Connexite(G):
         print(f"Stations atteignables depuis la station de départ: {len(Liaison)}")
         print(f"Stations non atteignables: {G.number_of_nodes() - len(Liaison)}")
 
-def plus_court_chemin(graph, start, end):
+def plus_court_chemin(graph, debut_name, fin_name):
     """
     Utilise l'algorithme de Bellman-Ford pour trouver le plus court chemin entre deux stations
     """
+    if debut_name not in graph or fin_name not in graph:
+        print(f"Station(s) non trouvée(s): {debut_name} ou {fin_name}")
+        return None, inf
+    
     distances = {node: inf for node in graph.nodes()}
     predecesseurs = {node: None for node in graph.nodes()}
-    distances[start] = 0
+    distances[debut_name] = 0
     
     for _ in range(len(graph.nodes()) - 1):
         for u, v, data in graph.edges(data=True):
@@ -48,42 +53,39 @@ def plus_court_chemin(graph, start, end):
                 distances[u] = distances[v] + data['temps']
                 predecesseurs[u] = v
                 
-    if distances[end] == inf:
+    if distances[fin_name] == inf:
         return "Pas de chemin trouvé"
         
     chemin = []
-    station = end
+    station = fin_name
     while station is not None:
         chemin.append(station)
         station = predecesseurs[station]
     chemin.reverse()
     
-    return chemin, distances[end]
+    return chemin, distances[fin_name]
 
 def arbre_couvrant_prim_poids_min(graph):
     # Initialisation
-    if not graph:
-        raise ValueError("Le graphe ne doit pas être vide.")
-        
-    arbre = {}
-    sommets = set(graph)
-    sommet = list(sommets)[0]
-    sommets.remove(sommet)
-    arbre[sommet] = None  # Racine de l'arbre couvrant
+    sommetDepart = next(iter(graph))
+    visite = set([sommetDepart])
+    edges = [(cost['temps'], sommetDepart, to) for to, cost in graph[sommetDepart].items()]
+    heapq.heapify(edges)
+    poids_total = 0  # Poids total de l'arbre couvrant minimum
+    arbre = {node: None for node in graph}  # Dictionnaire pour stocker les parents de chaque nœud
     
-    while sommets:
-        aretes = []
-        for s in arbre:
-            aretes.extend(
-                [(s, v, data['temps']) for v, data in graph[s].items() if v in sommets]
-            )
-        
-        # Trouver l'arête de poids minimal connectant un sommet de l'arbre à un sommet hors de l'arbre
-        u, v, poids = min(aretes, key=lambda x: x[2])
-        arbre[v] = u
-        sommets.remove(v)
-        
-    return arbre
+    while edges:
+        cost, frm, to = heapq.heappop(edges)
+        if to not in visite:
+            visite.add(to)
+            poids_total += cost
+            arbre[to] = frm  # Ajouter la liaison trouvée
+            for to_next, cost in graph[to].items():
+                if to_next not in visite:
+                    heapq.heappush(edges, (cost['temps'], to, to_next))
+    
+    return arbre, poids_total
+
 
 
 def CreationGraphe():
