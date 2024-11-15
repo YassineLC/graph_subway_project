@@ -21,6 +21,10 @@ def CreationGraphe():
             G[Station2].append((Station1, temps))  # Car le graphe est non dirigé
     return G
 
+def trouver_nom(id_station):
+    stations = lecture_stations()
+    return stations[id_station]['nom']
+
 def belmann(graphe, debut, fin):
     # Initialisation
     distances = {node: float('inf') for node in graphe}
@@ -96,7 +100,7 @@ def interface_metro_parisien():
     img = mpimg.imread('utils/metrof_r.png')
     G = CreationGraphe()
     station_positions = {}
-    with open('utils/pospoints.csv', 'r') as f:
+    with open('utils/pospoints.csv', 'r', encoding="utf-8") as f:
         for line in f:
             x, y, station_id = line.strip().split(';')
             station_positions[station_id] = (int(x), int(y))
@@ -143,7 +147,7 @@ def interface_metro_parisien():
                 start_id = trouver_id(start_station, start_line)
                 end_id = trouver_id(end_station, end_line)
                 
-                # Utilisation de Bellman-Ford au lieu de Dijkstra
+                # Utilisation de Bellman-Ford 
                 chemin, temps = belmann(G, start_id, end_id)
 
                 if chemin is None:
@@ -170,10 +174,12 @@ def interface_metro_parisien():
 
                 # Tracer le chemin sur la carte
                 for i in range(len(chemin) - 1):
-                    x1, y1 = station_positions[chemin[i]]
-                    x2, y2 = station_positions[chemin[i + 1]]
+                    station1 = trouver_nom(chemin[i])
+                    station2 = trouver_nom(chemin[i + 1])
+                    x1, y1 = station_positions[station1]
+                    x2, y2 = station_positions[station2]
                     ax_map.plot([x1, x2], [y1, y2], color='blue', linewidth=2)
-
+                    
                 plt.draw()
         else:
             start_station = None
