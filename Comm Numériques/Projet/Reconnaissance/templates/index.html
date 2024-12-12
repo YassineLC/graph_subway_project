@@ -1,0 +1,44 @@
+{% load bootstrap5 %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reconnaissance de Couleurs</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body class="bg-light">
+    <div class="container mt-5">
+        <h1 class="text-center">Reconnaissance de Couleurs</h1>
+        <div class="text-center mt-4">
+            <div id="color-box" class="border" style="width: 200px; height: 200px; margin: 0 auto; background-color: white;"></div>
+            <p id="status" class="mt-3">Cliquez sur "Démarrer l'écoute"</p>
+            <button id="ecoute" class="btn btn-success mt-3">Démarrer l'écoute</button>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $('#ecoute').click(function() {
+                $('#status').text("À l'écoute...");
+                $.ajax({
+                    url: "{% url 'ecoute' %}",
+                    method: "GET",
+                    success: function(response) {
+                        if (response.color) {
+                            $('#color-box').css('background-color', response.color);
+                            $('#status').text("Couleur détectée : " + response.name);
+                        } else if (response.error) {
+                            $('#status').text(response.error);
+                        }
+                    },
+                    error: function() {
+                        $('#status').text("Erreur lors de la requête");
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
